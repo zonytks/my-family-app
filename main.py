@@ -12,7 +12,7 @@ import database as db
 # --- НАСТРОЙКИ ---
 API_TOKEN = '8295389778:AAFH6K0850o_zIfSzraiReSI3mrDC1ELj70'
 # Эта переменная автоматически подхватит адрес от Render
-WEB_APP_URL = os.getenv("RENDER_EXTERNAL_URL", "https://your-app.onrender.com")
+WEB_APP_URL = os.getenv("https://my-family-app-qcir.onrender.com")
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
