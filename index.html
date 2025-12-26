@@ -3,87 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Shopping</title>
+    <title>Family Hub</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg: #f5f7fa;
-            --card: #ffffff;
-            --text: #2d3436;
-            --accent: #0088cc;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            margin: 0;
-        }
-        .container {
-            background: var(--card);
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-        h2 { margin-top: 0; color: var(--accent); }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 15px 0;
-            border: 2px solid #eee;
-            border-radius: 12px;
-            box-sizing: border-box;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        input:focus { border-color: var(--accent); }
-        button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,136,204,0.3);
-        }
-        button:active { transform: scale(0.98); }
+        :root { --tg-color: #2481cc; --bg: #efeff4; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding-bottom: 70px; }
+        
+        /* Навигация (Табы) */
+        .tab-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ccc; }
+        .tab { flex: 1; text-align: center; padding: 15px; cursor: pointer; color: #888; }
+        .tab.active { color: var(--tg-color); font-weight: bold; }
+
+        /* Контент */
+        .page { display: none; padding: 20px; }
+        .page.active { display: block; }
+
+        /* Список элементов */
+        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .done { text-decoration: line-through; color: #aaa; }
+        
+        input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+        .add-btn { background: var(--tg-color); color: white; border: none; padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>🏠 Семейный список</h2>
-        <p>Что нужно купить или сделать?</p>
-        <input type="text" id="itemInput" placeholder="Например: Хлеб...">
-        <button id="sendBtn">➕ Добавить в список</button>
+
+    <!-- Таб 1: Покупки -->
+    <div id="shopping_page" class="page active">
+        <h2>🛒 Покупки</h2>
+        <div style="margin-bottom: 20px;">
+            <input type="text" id="shop_input" placeholder="Что купить?">
+            <button class="add-btn" onclick="addItem('shopping', 'shop_input')">➕</button>
+        </div>
+        <div id="shop_list"></div>
+    </div>
+
+    <!-- Таб 2: Даты -->
+    <div id="events_page" class="page">
+        <h2>📅 Важные даты</h2>
+        <div style="margin-bottom: 20px;">
+            <input type="text" id="event_input" placeholder="Имя | 25.12">
+            <button class="add-btn" onclick="addItem('events', 'event_input')">➕</button>
+        </div>
+        <div id="event_list"></div>
+    </div>
+
+    <!-- Таб 3: Пароли -->
+    <div id="pass_page" class="page">
+        <h2>🔑 Пароли</h2>
+        <div style="margin-bottom: 20px;">
+            <input type="text" id="pass_input" placeholder="Сервис | Пароль">
+            <button class="add-btn" onclick="addItem('passwords', 'pass_input')">➕</button>
+        </div>
+        <div id="pass_list"></div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab active" onclick="showPage('shopping_page', this)">🛒</div>
+        <div class="tab" onclick="showPage('events_page', this)">📅</div>
+        <div class="tab" onclick="showPage('pass_page', this)">🔑</div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        let btn = document.getElementById('sendBtn');
-        let input = document.getElementById('itemInput');
+        let urlParams = new URLSearchParams(window.location.search);
+        let userId = urlParams.get('user_id');
+        let API_URL = window.location.origin; // Сервер там же, где и сайт (если используем туннель)
 
-        btn.addEventListener('click', () => {
-            let val = input.value.trim();
-            if (val.length > 0) {
-                tg.sendData(val); // Отправляем данные боту
-                tg.close(); // Закрываем приложение
-            } else {
-                tg.HapticFeedback.notificationOccurred('error');
-                alert('Пожалуйста, введите текст');
-            }
-        });
+        // Переключение вкладок
+        function showPage(pageId, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            el.classList.add('active');
+        }
+
+        // Загрузка данных с сервера
+        async function loadData() {
+            let res = await fetch(`${API_URL}/get_data?user_id=${userId}`);
+            let data = await res.json();
+            
+            // Рендерим покупки
+            document.getElementById('shop_list').innerHTML = data.shopping.map(i => `
+                <div class="card ${i.done ? 'done' : ''}" onclick="toggleItem(${i.id})">
+                    ${i.text} <span>${i.done ? '✅' : '⏳'}</span>
+                </div>
+            `).join('');
+
+            // Рендерим даты
+            document.getElementById('event_list').innerHTML = data.events.map(i => `
+                <div class="card"><b>${i.title}</b> <span>${i.date}</span></div>
+            `).join('');
+
+            // Рендерим пароли
+            document.getElementById('pass_list').innerHTML = data.passwords.map(i => `
+                <div class="card"><b>${i.service}</b> <code>${i.pass}</code></div>
+            `).join('');
+        }
+
+        async function addItem(table, inputId) {
+            let text = document.getElementById(inputId).value;
+            await fetch(`${API_URL}/add_data`, {
+                method: 'POST',
+                body: JSON.stringify({user_id: userId, text: text, table: table})
+            });
+            document.getElementById(inputId).value = '';
+            loadData();
+        }
+
+        async function toggleItem(id) {
+            await fetch(`${API_URL}/toggle_item`, {
+                method: 'POST',
+                body: JSON.stringify({id: id})
+            });
+            loadData();
+        }
+
+        loadData();
     </script>
 </body>
 </html>
