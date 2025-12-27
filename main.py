@@ -10,7 +10,7 @@ from aiohttp import web
 import database as db
 
 # --- НАСТРОЙКИ ---
-API_TOKEN = '8295389778:AAFH6K0850o_zIfSzraiReSI3mrDC1ELj70'
+API_TOKEN = '8295389778:AAFOJmETsv06QVDv0hBpxLiK1Xv5J6aGQUI'
 # Эта переменная автоматически подхватит адрес от Render
 WEB_APP_URL = os.getenv("https://my-family-app-qcir.onrender.com")
 
@@ -150,3 +150,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
